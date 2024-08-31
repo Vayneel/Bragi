@@ -1,10 +1,16 @@
-from pygame import mixer, event
+import pygame
+from pygame import mixer
 from tkinter import *
 from tkinter import filedialog
 import os
 
 # todo additional window with stuff like volume or position (to make program consume less resources)
-# event.set_allowed()
+
+pygame.init()
+MUSIC_END = pygame.USEREVENT+1
+mixer.music.set_endevent(MUSIC_END)
+pygame.event.set_allowed(MUSIC_END)
+
 volume: float
 volume_slider: Scale
 position_slider: Scale
@@ -13,6 +19,15 @@ play_button: Button
 music_queue: list[str] = []
 current_song_index: int = 0
 music_listbox: Listbox
+
+
+def end_check():
+    global MUSIC_END
+    for event in pygame.event.get():
+        if event.type == MUSIC_END:
+            play("next")
+
+    tk.after(100, end_check)
 
 
 def volume_update(_):
@@ -100,6 +115,6 @@ if __name__ == "__main__":
     music_listbox.bind("<Double-Button-1>", lambda _: play("listbox"))
     music_listbox.pack()
 
-    Button(tk, text="TEST EVENTS", command=event.get)
+    end_check()
 
     mainloop()
