@@ -1,10 +1,10 @@
-from pygame import mixer
+from pygame import mixer, event
 from tkinter import *
 from tkinter import filedialog
 import os
 
 # todo additional window with stuff like volume or position (to make program consume less resources)
-
+# event.set_allowed()
 volume: float
 volume_slider: Scale
 position_slider: Scale
@@ -96,8 +96,10 @@ if __name__ == "__main__":
     Button(master=tk, text="Next", command=lambda: play("next")).pack()
     Button(master=tk, text="Previous", command=lambda: play("prev")).pack()
 
-    music_listbox = Listbox(tk, activestyle="dotbox")
+    music_listbox = Listbox(master=tk, activestyle="dotbox")
     music_listbox.bind("<Double-Button-1>", lambda _: play("listbox"))
     music_listbox.pack()
+
+    Button(tk, text="TEST EVENTS", command=event.get)
 
     mainloop()
