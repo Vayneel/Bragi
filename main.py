@@ -3,7 +3,7 @@ from pygame import mixer
 from customtkinter import *
 from CTkListbox import *
 from tkinter.filedialog import askdirectory
-import pystray
+from pystray import Icon, Menu, MenuItem
 from PIL import Image
 import os
 
@@ -14,6 +14,7 @@ MUSIC_END = pygame.USEREVENT+1
 mixer.music.set_endevent(MUSIC_END)
 pygame.event.set_allowed(MUSIC_END)
 
+window: CTk
 volume: float
 volume_slider: CTkSlider
 position_slider: CTkSlider
@@ -22,15 +23,16 @@ play_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 music_listbox: CTkListbox
+image = Image.open("icon.png")
 
 
-def end_check():
+def end_check(ctk: CTk):
     global MUSIC_END
     for event in pygame.event.get():
         if event.type == MUSIC_END:
             play("next")
 
-    window.after(100, end_check)
+    ctk.after(100, lambda: end_check(ctk))
 
 
 def volume_update(_):
@@ -102,32 +104,59 @@ def play(mode: str = "default", song_name: str = ""):
     mixer.music.play()
 
 
-if __name__ == "__main__":
-    window = CTk()
-    mixer.init()
-    window.geometry("720x480")
+def icon_command(icon, item):
+    command = str(item)
+    match command:
+        case "Expand":
+            print("Expanding... no")
+        case "Exit":
+            icon.stop()
 
-    CTkButton(master=window, text="Load Songs", command=load_songs).pack()
-    volume_slider = CTkSlider(master=window, orientation="horizontal", from_=0, to=100, command=volume_update)
+
+def iconify(ctk):
+    global image
+    ctk.destroy()
+    icon = Icon("Bragi", image, menu=Menu(
+        MenuItem("Expand", icon_command),
+        MenuItem("Exit", icon_command),
+    ))
+    icon.run()
+
+
+def gui_startup():
+    global volume_slider, position_slider, play_button, music_listbox
+    ctk = CTk()
+    ctk.geometry("720x480")
+    ctk.protocol("WM_DELETE_WINDOW", lambda: iconify(ctk))
+
+    CTkButton(master=ctk, text="Load Songs", command=load_songs).pack()
+    volume_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=volume_update)
     volume_slider.set(100)
     volume_slider.pack()
 
-    position_slider = CTkSlider(master=window, orientation="horizontal", from_=0, to=1000)
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
     position_slider.bind("<ButtonRelease-1>", position_update)
     position_slider.pack()
 
-    play_button = CTkButton(master=window, text="Play", command=play)
+    play_button = CTkButton(master=ctk, text="Play", command=play)
     play_button.pack()
 
-    CTkButton(master=window, text="Next", command=lambda: play("next")).pack()
-    CTkButton(master=window, text="Previous", command=lambda: play("prev")).pack()
+    CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
+    CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
 
-    music_listbox = CTkListbox(master=window, command=lambda _: play("listbox"))
+    music_listbox = CTkListbox(master=ctk, command=lambda _: play("listbox"))
     # music_listbox.bind("<Double-Button-1>", lambda _: play("listbox"))
     music_listbox.pack()
 
-    CTkButton(master=window, text="Clear Playlist", command=clear_playlist).pack()
+    CTkButton(master=ctk, text="Clear Playlist", command=clear_playlist).pack()
 
-    end_check()
+    end_check(ctk)
 
-    window.mainloop()
+    ctk.mainloop()
+
+    return ctk
+
+
+if __name__ == "__main__":
+    mixer.init()
+    window = gui_startup()
