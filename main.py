@@ -3,6 +3,8 @@ from pygame import mixer
 from customtkinter import *
 from CTkListbox import *
 from tkinter.filedialog import askdirectory
+import pystray
+from PIL import Image
 import os
 
 # todo additional window with stuff like volume or position (to make program consume less resources)
