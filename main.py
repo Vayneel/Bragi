@@ -1,3 +1,6 @@
+from cProfile import label
+from doctest import master
+
 import pygame
 from pygame import mixer
 from customtkinter import *
@@ -15,36 +18,64 @@ MUSIC_END = pygame.USEREVENT+1
 mixer.music.set_endevent(MUSIC_END)
 pygame.event.set_allowed(MUSIC_END)
 
+NO_SYS_TRAY = True
+
 window: CTk
-volume: float
+volume: float = -1
 volume_slider: CTkSlider
 position_slider: CTkSlider
 paused: bool = False
-iconified: bool
 play_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 music_listbox: CTkListbox
-image = Image.open("icon.png")
+
+COLOR_SOFT_BEIGE = "#E6D4B4"
+COLOR_DARK_CHARCOAL = "#2D2A26"
+COLOR_DEEP_RED = "#A43B2A"
+COLOR_GOLDEN_YELLOW = "#D4B363"
+COLOR_MUTED_GREEN = "#4A6F50"
+
+if not NO_SYS_TRAY:
+    iconified: bool
+    image = Image.open("bragi.png")
+
+    async def end_check():
+        global MUSIC_END
+        while 1:
+            for event in pygame.event.get():
+                if event.type == MUSIC_END:
+                    play("next")
+
+            await asyncio.sleep(0.1)
 
 
-# async def end_check():
-#     global MUSIC_END
-#     while 1:
-#         for event in pygame.event.get():
-#             if event.type == MUSIC_END:
-#                 play("next")
-#
-#         await asyncio.sleep(0.1)
+    def icon_command(icon, item):
+        command = str(item)
+        match command:
+            case "Expand":
+                print("Expanding... no")
+            case "Exit":
+                icon.stop()
 
 
-def end_check(ctk: CTk):
-    global MUSIC_END
-    for event in pygame.event.get():
-        if event.type == MUSIC_END:
-            play("next")
+    def iconify(ctk):
+        global image, iconified
+        iconified = True
+        ctk.destroy()
+        icon = Icon("Bragi", image, menu=Menu(
+            MenuItem("Expand", icon_command),
+            MenuItem("Exit", icon_command),
+        ))
+        icon.run()
+else:
+    def end_check(ctk: CTk):
+        global MUSIC_END
+        for event in pygame.event.get():
+            if event.type == MUSIC_END:
+                play("next")
 
-    ctk.after(100, lambda: end_check(ctk))
+        ctk.after(100, lambda: end_check(ctk))
 
 
 def volume_update(_):
@@ -109,6 +140,9 @@ def play(mode: str = "default"):
         case "prev":
             current_song_index = current_song_index - 1 if current_song_index > 0 else len(music_queue) - 1
 
+    if not mode == "listbox":
+        music_listbox.select(current_song_index)
+
     play_button.configure(text="Pause")
 
     paused = False
@@ -117,52 +151,52 @@ def play(mode: str = "default"):
     mixer.music.play()
 
 
-def icon_command(icon, item):
-    command = str(item)
-    match command:
-        case "Expand":
-            print("Expanding... no")
-        case "Exit":
-            icon.stop()
-
-
-# def iconify(ctk):
-#     global image, iconified
-#     iconified = True
-#     ctk.destroy()
-#     icon = Icon("Bragi", image, menu=Menu(
-#         MenuItem("Expand", icon_command),
-#         MenuItem("Exit", icon_command),
-#     ))
-#     icon.run()
-
-
 def gui_startup():
-    global volume_slider, position_slider, play_button, music_listbox, iconified
-    iconified = False
+    global volume_slider, position_slider, play_button, music_listbox, volume
+    # global iconified
+    # iconified = False
+
     ctk = CTk()
+    ctk.configure(fg_color=COLOR_SOFT_BEIGE)
     ctk.geometry("720x480")
+    ctk.title("BRAGI")
+    ctk.resizable(False, False)
+    ctk.iconbitmap("bragi.ico")
+
+    font = ("Garamond Bold", 16)
+
     # ctk.protocol("WM_DELETE_WINDOW", lambda: iconify(ctk))
 
-    CTkButton(master=ctk, text="Load Songs", command=load_songs).pack()
-    volume_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=volume_update)
-    volume_slider.set(100)
-    volume_slider.pack()
+    sidebar = CTkFrame(master=ctk, fg_color=COLOR_DARK_CHARCOAL, width=240, corner_radius=0)
+    sidebar.pack(side="left", fill="y")
 
-    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
-    position_slider.bind("<ButtonRelease-1>", position_update)
-    position_slider.pack()
+    CTkButton(master=sidebar, text="Add Songs", command=load_songs, fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
+              text_color=COLOR_DARK_CHARCOAL).pack(padx=10, pady=10)
+    music_listbox = CTkListbox(master=sidebar, command=lambda _: play("listbox"), fg_color=COLOR_SOFT_BEIGE,
+                               text_color=COLOR_DARK_CHARCOAL, font=font, corner_radius=10,
+                               hover_color=COLOR_DEEP_RED, highlight_color=COLOR_GOLDEN_YELLOW,
+                               border_width=0, scrollbar_button_color=COLOR_SOFT_BEIGE,
+                               scrollbar_button_hover_color=COLOR_GOLDEN_YELLOW,)
+    music_listbox.pack(pady=10, padx=10, expand="y", fill="both")
+    volume_slider = CTkSlider(master=sidebar, orientation="horizontal", from_=0, to=100, command=volume_update,
+                              fg_color=COLOR_SOFT_BEIGE, progress_color=COLOR_GOLDEN_YELLOW,
+                              button_color=COLOR_GOLDEN_YELLOW, hover=False)
+    volume_slider.set(volume if volume >= 0 else 100)
+    volume_slider.pack(side="bottom", pady=30, padx=10, fill="x")
+    CTkButton(master=sidebar, text="Clear", command=clear_playlist(), fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
+              text_color=COLOR_DARK_CHARCOAL).pack(side="bottom", padx=10, pady=0)
 
-    play_button = CTkButton(master=ctk, text="Play", command=play)
-    play_button.pack()
-
-    CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
-    CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
-
-    music_listbox = CTkListbox(master=ctk, command=lambda _: play("listbox"))
-    music_listbox.pack()
-
-    CTkButton(master=ctk, text="Clear Playlist", command=clear_playlist).pack()
+    # position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
+    # position_slider.bind("<ButtonRelease-1>", position_update)
+    # position_slider.pack()
+    #
+    # play_button = CTkButton(master=ctk, text="Play", command=play)
+    # play_button.pack()
+    #
+    # CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
+    # CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
 
     # if iconify() is commented
     end_check(ctk)
