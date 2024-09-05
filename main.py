@@ -175,9 +175,12 @@ def play(mode: str = "default"):
 
     play_button.configure(text="Pause")
 
+    song_label = music_listbox.get(current_song_index)
+    song_label = song_label[:28] + "..." if not len(song_label) < 29 else song_label
+
     paused = False
     song = music_queue[current_song_index]
-    current_song_label.configure(text=music_listbox.get(current_song_index))
+    current_song_label.configure(text=song_label)
     mixer.music.load(song)
     mixer.music.play()
 
@@ -229,21 +232,16 @@ def gui_startup():
     clear_button.pack(side="bottom", padx=10, pady=0)
 
     current_song_label = CTkLabel(master=ctk, text_color=COLOR_DARK_CHARCOAL,
-                                  font=("Comic Sans MS Bold", 24),
-                                  text="BRAGI", wraplength=320)
+                                  font=("Comic Sans MS Bold", 24), text="BRAGI",
+                                  # wraplength=320
+                                  )
     current_song_label.pack(pady=30)
 
     current_song_image_image = CTkLabel(master=ctk, text="", image=current_song_image)
     current_song_image_image.pack(pady=0)
 
-    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000,
-                                fg_color=COLOR_DARK_CHARCOAL, progress_color=COLOR_GOLDEN_YELLOW,
-                                button_color=COLOR_GOLDEN_YELLOW, hover=False)
-    position_slider.bind("<ButtonRelease-1>", position_update)
-    position_slider.pack()
-
     command_frame = CTkFrame(master=ctk, fg_color=COLOR_SOFT_BEIGE)
-    command_frame.pack(expand=True, fill="x", padx=110)
+    command_frame.pack(fill="x", padx=110, pady=20)
 
     CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=COLOR_GOLDEN_YELLOW,
               hover_color=COLOR_DEEP_RED, corner_radius=10, font=font, width=70,
@@ -259,6 +257,12 @@ def gui_startup():
               hover_color=COLOR_DEEP_RED, corner_radius=10, font=font, width=70,
               text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE).pack(side="left", expand=True,
                                                                                          fill='x', padx=5)
+
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000, width=250,
+                                fg_color=COLOR_DARK_CHARCOAL, progress_color=COLOR_GOLDEN_YELLOW,
+                                button_color=COLOR_GOLDEN_YELLOW, hover=False)
+    position_slider.bind("<ButtonRelease-1>", position_update)
+    position_slider.pack()
 
     # if iconify() is commented
     end_check(ctk)
