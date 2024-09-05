@@ -2,6 +2,7 @@ from cProfile import label
 from doctest import master
 
 import pygame
+from PIL.ImageOps import expand
 from pygame import mixer
 from customtkinter import *
 from CTkListbox import *
@@ -33,6 +34,9 @@ music_queue: list[str] = []
 current_song_index: int = 0
 current_song_label: CTkLabel
 music_listbox: CTkListbox
+current_song_image = CTkImage(light_image=Image.open("bragi.png"),
+                              dark_image=Image.open("bragi.png"),
+                              size=(250, 250))
 
 COLOR_SOFT_BEIGE = "#E6D4B4"
 COLOR_DARK_CHARCOAL = "#2D2A26"
@@ -129,7 +133,7 @@ def clear_playlist():
     add_songs_button.configure(state="disabled")
     clear_button.configure(state="disabled")
 
-    current_song_label.configure(text="")
+    current_song_label.configure(text="BRAGI")
     current_song_index = 0
     music_queue.clear()
     mixer.music.unload()
@@ -180,7 +184,7 @@ def play(mode: str = "default"):
 
 def gui_startup():
     global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label, add_songs_button
-    global clear_button
+    global clear_button, current_song_image
     # global iconified
     # iconified = False
 
@@ -226,18 +230,35 @@ def gui_startup():
 
     current_song_label = CTkLabel(master=ctk, text_color=COLOR_DARK_CHARCOAL,
                                   font=("Comic Sans MS Bold", 24),
-                                  text="", wraplength=320)
+                                  text="BRAGI", wraplength=320)
     current_song_label.pack(pady=30)
 
-    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
+    current_song_image_image = CTkLabel(master=ctk, text="", image=current_song_image)
+    current_song_image_image.pack(pady=0)
+
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000,
+                                fg_color=COLOR_DARK_CHARCOAL, progress_color=COLOR_GOLDEN_YELLOW,
+                                button_color=COLOR_GOLDEN_YELLOW, hover=False)
     position_slider.bind("<ButtonRelease-1>", position_update)
     position_slider.pack()
 
-    play_button = CTkButton(master=ctk, text="Play", command=play)
-    play_button.pack()
+    command_frame = CTkFrame(master=ctk, fg_color=COLOR_SOFT_BEIGE)
+    command_frame.pack(expand=True, fill="x", padx=110)
 
-    CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
-    CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
+    CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, corner_radius=10, font=font, width=70,
+              text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE).pack(side="left", expand=True,
+                                                                                         fill="x", padx=5)
+
+    play_button = CTkButton(master=command_frame, text="Play", command=play, fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, corner_radius=10, font=font, width=70,
+              text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE)
+    play_button.pack(side="left", expand=True, fill="x", padx=5)
+
+    CTkButton(master=command_frame, text=">", command=lambda: play("next"), fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, corner_radius=10, font=font, width=70,
+              text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE).pack(side="left", expand=True,
+                                                                                         fill='x', padx=5)
 
     # if iconify() is commented
     end_check(ctk)
