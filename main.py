@@ -28,6 +28,7 @@ paused: bool = False
 play_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
+current_song_label: CTkLabel
 music_listbox: CTkListbox
 
 COLOR_SOFT_BEIGE = "#E6D4B4"
@@ -152,7 +153,7 @@ def play(mode: str = "default"):
 
 
 def gui_startup():
-    global volume_slider, position_slider, play_button, music_listbox, volume
+    global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label
     # global iconified
     # iconified = False
 
@@ -187,6 +188,9 @@ def gui_startup():
     CTkButton(master=sidebar, text="Clear", command=clear_playlist(), fg_color=COLOR_GOLDEN_YELLOW,
               hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
               text_color=COLOR_DARK_CHARCOAL).pack(side="bottom", padx=10, pady=0)
+
+    current_song_label = CTkLabel(master=ctk, text_color=COLOR_DARK_CHARCOAL, font=("Garamond Bold", 24))
+    current_song_label.pack(pady=30)
 
     # position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
     # position_slider.bind("<ButtonRelease-1>", position_update)
