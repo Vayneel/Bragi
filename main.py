@@ -6,6 +6,7 @@ from tkinter.filedialog import askdirectory
 from pystray import Icon, Menu, MenuItem
 from PIL import Image
 import os
+import asyncio
 
 # todo additional window with stuff like volume or position (to make program consume less resources)
 
@@ -19,11 +20,22 @@ volume: float
 volume_slider: CTkSlider
 position_slider: CTkSlider
 paused: bool = False
+iconified: bool
 play_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 music_listbox: CTkListbox
 image = Image.open("icon.png")
+
+
+# async def end_check():
+#     global MUSIC_END
+#     while 1:
+#         for event in pygame.event.get():
+#             if event.type == MUSIC_END:
+#                 play("next")
+#
+#         await asyncio.sleep(0.1)
 
 
 def end_check(ctk: CTk):
@@ -70,7 +82,7 @@ def clear_playlist():
         widget.destroy()
 
 
-def play(mode: str = "default", song_name: str = ""):
+def play(mode: str = "default"):
     global volume, paused, music_queue, current_song_index, play_button, music_listbox
 
     if mode != "default":
@@ -97,8 +109,9 @@ def play(mode: str = "default", song_name: str = ""):
         case "prev":
             current_song_index = current_song_index - 1 if current_song_index > 0 else len(music_queue) - 1
 
-    paused = False
     play_button.configure(text="Pause")
+
+    paused = False
     song = music_queue[current_song_index]
     mixer.music.load(song)
     mixer.music.play()
@@ -113,21 +126,23 @@ def icon_command(icon, item):
             icon.stop()
 
 
-def iconify(ctk):
-    global image
-    ctk.destroy()
-    icon = Icon("Bragi", image, menu=Menu(
-        MenuItem("Expand", icon_command),
-        MenuItem("Exit", icon_command),
-    ))
-    icon.run()
+# def iconify(ctk):
+#     global image, iconified
+#     iconified = True
+#     ctk.destroy()
+#     icon = Icon("Bragi", image, menu=Menu(
+#         MenuItem("Expand", icon_command),
+#         MenuItem("Exit", icon_command),
+#     ))
+#     icon.run()
 
 
 def gui_startup():
-    global volume_slider, position_slider, play_button, music_listbox
+    global volume_slider, position_slider, play_button, music_listbox, iconified
+    iconified = False
     ctk = CTk()
     ctk.geometry("720x480")
-    ctk.protocol("WM_DELETE_WINDOW", lambda: iconify(ctk))
+    # ctk.protocol("WM_DELETE_WINDOW", lambda: iconify(ctk))
 
     CTkButton(master=ctk, text="Load Songs", command=load_songs).pack()
     volume_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=volume_update)
@@ -145,11 +160,11 @@ def gui_startup():
     CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
 
     music_listbox = CTkListbox(master=ctk, command=lambda _: play("listbox"))
-    # music_listbox.bind("<Double-Button-1>", lambda _: play("listbox"))
     music_listbox.pack()
 
     CTkButton(master=ctk, text="Clear Playlist", command=clear_playlist).pack()
 
+    # if iconify() is commented
     end_check(ctk)
 
     ctk.mainloop()
@@ -160,3 +175,4 @@ def gui_startup():
 if __name__ == "__main__":
     mixer.init()
     window = gui_startup()
+    # asyncio.run(end_check())
