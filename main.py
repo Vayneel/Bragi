@@ -12,6 +12,7 @@ import os
 import asyncio
 
 # todo additional window with stuff like volume or position (to make program consume less resources)
+# todo ctk.timer (or sth like that) to move pos slider
 
 pygame.init()
 MUSIC_END = pygame.USEREVENT+1
@@ -26,6 +27,8 @@ volume_slider: CTkSlider
 position_slider: CTkSlider
 paused: bool = False
 play_button: CTkButton
+add_songs_button: CTkButton
+clear_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 current_song_label: CTkLabel
@@ -35,7 +38,7 @@ COLOR_SOFT_BEIGE = "#E6D4B4"
 COLOR_DARK_CHARCOAL = "#2D2A26"
 COLOR_DEEP_RED = "#A43B2A"
 COLOR_GOLDEN_YELLOW = "#D4B363"
-COLOR_MUTED_GREEN = "#4A6F50"
+# COLOR_MUTED_GREEN = "#4A6F50"
 
 if not NO_SYS_TRAY:
     iconified: bool
@@ -93,10 +96,17 @@ def position_update(_):
 
 
 def load_songs():
-    global music_queue, music_listbox
+    global music_queue, music_listbox, clear_button, add_songs_button
+
+    clear_button.configure(state="disabled")
+    add_songs_button.configure(state="disabled")
+
+    first_song = True if len(music_queue) < 1 else False
 
     music_directory = askdirectory()
     if not music_directory:
+        clear_button.configure(state="normal")
+        add_songs_button.configure(state="normal")
         return
 
     for root, _, files in os.walk(music_directory):
@@ -105,17 +115,32 @@ def load_songs():
                 music_queue.append(os.path.join(root, file))
                 music_listbox.insert(END, file[:-4])
 
+            if first_song:
+                first_song = False
+                music_listbox.select(0)
+
+    clear_button.configure(state="normal")
+    add_songs_button.configure(state="normal")
+
 
 def clear_playlist():
-    global current_song_index, music_queue, music_listbox
+    global current_song_index, music_queue, music_listbox, current_song_label, add_songs_button, clear_button
+
+    add_songs_button.configure(state="disabled")
+    clear_button.configure(state="disabled")
+
+    current_song_label.configure(text="")
     current_song_index = 0
     music_queue.clear()
-    for widget in music_listbox.winfo_children():
-        widget.destroy()
+    mixer.music.unload()
+    music_listbox.delete("all")
+
+    add_songs_button.configure(state="normal")
+    clear_button.configure(state="normal")
 
 
 def play(mode: str = "default"):
-    global volume, paused, music_queue, current_song_index, play_button, music_listbox
+    global volume, paused, music_queue, current_song_index, play_button, music_listbox, current_song_label
 
     if mode != "default":
         mixer.music.unload()
@@ -148,12 +173,14 @@ def play(mode: str = "default"):
 
     paused = False
     song = music_queue[current_song_index]
+    current_song_label.configure(text=music_listbox.get(current_song_index))
     mixer.music.load(song)
     mixer.music.play()
 
 
 def gui_startup():
-    global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label
+    global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label, add_songs_button
+    global clear_button
     # global iconified
     # iconified = False
 
@@ -164,43 +191,53 @@ def gui_startup():
     ctk.resizable(False, False)
     ctk.iconbitmap("bragi.ico")
 
-    font = ("Garamond Bold", 16)
+    font = ("Comic Sans MS", 16)
 
     # ctk.protocol("WM_DELETE_WINDOW", lambda: iconify(ctk))
 
     sidebar = CTkFrame(master=ctk, fg_color=COLOR_DARK_CHARCOAL, width=240, corner_radius=0)
     sidebar.pack(side="left", fill="y")
 
-    CTkButton(master=sidebar, text="Add Songs", command=load_songs, fg_color=COLOR_GOLDEN_YELLOW,
+    add_songs_button = CTkButton(master=sidebar, text="Add Songs", command=load_songs, fg_color=COLOR_GOLDEN_YELLOW,
               hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
-              text_color=COLOR_DARK_CHARCOAL).pack(padx=10, pady=10)
-    music_listbox = CTkListbox(master=sidebar, command=lambda _: play("listbox"), fg_color=COLOR_SOFT_BEIGE,
-                               text_color=COLOR_DARK_CHARCOAL, font=font, corner_radius=10,
+              text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE)
+    add_songs_button.pack(padx=10, pady=10)
+
+    music_listbox = CTkListbox(master=sidebar,
+                               command=lambda _: play("listbox"),
+                               fg_color=COLOR_SOFT_BEIGE,
+                               text_color=COLOR_DARK_CHARCOAL, corner_radius=10,
                                hover_color=COLOR_DEEP_RED, highlight_color=COLOR_GOLDEN_YELLOW,
                                border_width=0, scrollbar_button_color=COLOR_SOFT_BEIGE,
-                               scrollbar_button_hover_color=COLOR_GOLDEN_YELLOW,)
+                               scrollbar_button_hover_color=COLOR_GOLDEN_YELLOW)
+    music_listbox.configure(font=font)
     music_listbox.pack(pady=10, padx=10, expand="y", fill="both")
+
     volume_slider = CTkSlider(master=sidebar, orientation="horizontal", from_=0, to=100, command=volume_update,
                               fg_color=COLOR_SOFT_BEIGE, progress_color=COLOR_GOLDEN_YELLOW,
                               button_color=COLOR_GOLDEN_YELLOW, hover=False)
     volume_slider.set(volume if volume >= 0 else 100)
     volume_slider.pack(side="bottom", pady=30, padx=10, fill="x")
-    CTkButton(master=sidebar, text="Clear", command=clear_playlist(), fg_color=COLOR_GOLDEN_YELLOW,
-              hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
-              text_color=COLOR_DARK_CHARCOAL).pack(side="bottom", padx=10, pady=0)
 
-    current_song_label = CTkLabel(master=ctk, text_color=COLOR_DARK_CHARCOAL, font=("Garamond Bold", 24))
+    clear_button = CTkButton(master=sidebar, text="Clear", command=clear_playlist, fg_color=COLOR_GOLDEN_YELLOW,
+              hover_color=COLOR_DEEP_RED, width=220, corner_radius=10, font=font,
+              text_color=COLOR_DARK_CHARCOAL, text_color_disabled=COLOR_SOFT_BEIGE)
+    clear_button.pack(side="bottom", padx=10, pady=0)
+
+    current_song_label = CTkLabel(master=ctk, text_color=COLOR_DARK_CHARCOAL,
+                                  font=("Comic Sans MS Bold", 24),
+                                  text="", wraplength=320)
     current_song_label.pack(pady=30)
 
-    # position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
-    # position_slider.bind("<ButtonRelease-1>", position_update)
-    # position_slider.pack()
-    #
-    # play_button = CTkButton(master=ctk, text="Play", command=play)
-    # play_button.pack()
-    #
-    # CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
-    # CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000)
+    position_slider.bind("<ButtonRelease-1>", position_update)
+    position_slider.pack()
+
+    play_button = CTkButton(master=ctk, text="Play", command=play)
+    play_button.pack()
+
+    CTkButton(master=ctk, text="Next", command=lambda: play("next")).pack()
+    CTkButton(master=ctk, text="Previous", command=lambda: play("prev")).pack()
 
     # if iconify() is commented
     end_check(ctk)
