@@ -5,26 +5,19 @@ from CTkListbox import *
 from tkinter.filedialog import askdirectory
 from PIL import Image
 import os
-import json
 import sys
 
-
-if os.path.exists("settings.json"):
-    with open("settings.json") as settings:
-        volume = json.load(settings)["volume"]
-else:
-    with open("settings.json", "w") as settings:
-        json.dump({"volume": 1}, settings)
-    volume = 1
-
 pygame.init()
-MUSIC_END = pygame.USEREVENT+1
+mixer.init()
+MUSIC_END = pygame.USEREVENT + 1
 mixer.music.set_endevent(MUSIC_END)
 pygame.event.set_allowed(MUSIC_END)
-mixer.music.set_volume(volume)
+mixer.music.set_volume(1)
 
+# Other variables
 window: CTk
 volume_slider: CTkSlider
+volume: float = 0
 position_slider: CTkSlider
 paused: bool = False
 play_button: CTkButton
@@ -33,13 +26,13 @@ clear_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 current_song_label: CTkLabel
+current_song_length: float
 music_listbox: CTkListbox
 
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     if hasattr(sys, '_MEIPASS'):
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         return os.path.join(sys._MEIPASS, relative_path)
     else:
         return os.path.join(os.path.abspath("."), relative_path)
@@ -50,23 +43,18 @@ def end_check(ctk: CTk):
     for event in pygame.event.get():
         if event.type == MUSIC_END:
             play("next")
-
     ctk.after(100, lambda: end_check(ctk))
 
 
-def volume_update(_ = float(0), mode: str = ""):
+def volume_update(_):
     global volume, volume_slider
     volume = round(volume_slider.get() / 100, 2)
-    if mode == "write":
-        with open("settings.json", "w") as f:
-            json.dump({"volume": volume}, f)
-        return
     mixer.music.set_volume(volume)
 
 
 def position_update(_):
-    global position_slider
-    pos = position_slider.get() / 10
+    global position_slider, current_song_length
+    pos = position_slider.get() / 100 * current_song_length
     if mixer.music.get_busy():
         mixer.music.set_pos(pos)
 
@@ -116,7 +104,7 @@ def clear_playlist():
 
 
 def play(mode: str = "default"):
-    global volume, paused, music_queue, current_song_index, play_button, music_listbox, current_song_label
+    global paused, music_queue, current_song_index, play_button, music_listbox, current_song_label, current_song_length
 
     if mode != "default":
         mixer.music.unload()
@@ -153,13 +141,13 @@ def play(mode: str = "default"):
     paused = False
     song = music_queue[current_song_index]
     current_song_label.configure(text=song_label)
+    current_song_length = mixer.Sound(song).get_length()
     mixer.music.load(song)
     mixer.music.play()
 
 
 def gui_startup():
-    global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label, add_songs_button
-    global clear_button
+    global volume_slider, position_slider, play_button, music_listbox, current_song_label, add_songs_button, clear_button
 
     bragi_image_path = resource_path("bragi.png")
     bragi_image = CTkImage(light_image=Image.open(bragi_image_path),
@@ -199,9 +187,8 @@ def gui_startup():
     volume_slider = CTkSlider(master=sidebar, orientation="horizontal", from_=0, to=100, command=volume_update,
                               fg_color=color_soft_beige, progress_color=color_golden_yellow,
                               button_color=color_golden_yellow, hover=False)
-    volume_slider.set(volume * 100)
+    volume_slider.set(100)
 
-    volume_slider.bind("<ButtonRelease-1>", lambda _: volume_update(mode="write"))
     volume_slider.pack(side="bottom", pady=30, padx=10, fill="x")
 
     clear_button = CTkButton(master=sidebar, text="Clear", command=clear_playlist, fg_color=color_golden_yellow,
@@ -220,32 +207,26 @@ def gui_startup():
     command_frame.pack(fill="x", padx=110, pady=20)
 
     CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=color_golden_yellow,
-              hover_color=color_deep_red, corner_radius=10, font=font, width=70,
-              text_color=color_dark_charcoal, text_color_disabled=color_soft_beige).pack(side="left", expand=True,
-                                                                                         fill="x", padx=5)
+              hover_color=color_deep_red, width=60, corner_radius=10, font=font,
+              text_color=color_dark_charcoal).pack(side="left", padx=10)
 
     play_button = CTkButton(master=command_frame, text="Play", command=play, fg_color=color_golden_yellow,
-              hover_color=color_deep_red, corner_radius=10, font=font, width=70,
-              text_color=color_dark_charcoal, text_color_disabled=color_soft_beige)
-    play_button.pack(side="left", expand=True, fill="x", padx=5)
+                            hover_color=color_deep_red, width=60, corner_radius=10, font=font,
+                            text_color=color_dark_charcoal)
+    play_button.pack(side="left", padx=10)
 
     CTkButton(master=command_frame, text=">", command=lambda: play("next"), fg_color=color_golden_yellow,
-              hover_color=color_deep_red, corner_radius=10, font=font, width=70,
-              text_color=color_dark_charcoal, text_color_disabled=color_soft_beige).pack(side="left", expand=True,
-                                                                                         fill='x', padx=5)
+              hover_color=color_deep_red, width=60, corner_radius=10, font=font,
+              text_color=color_dark_charcoal).pack(side="left", padx=10)
 
-    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=1000, width=250,
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=position_update,
                                 fg_color=color_dark_charcoal, progress_color=color_golden_yellow,
-                                button_color=color_golden_yellow, hover=False)
-    position_slider.bind("<ButtonRelease-1>", position_update)
+                                button_color=color_golden_yellow, hover=False, width=250)
     position_slider.pack()
 
     end_check(ctk)
     ctk.mainloop()
-    return ctk
 
 
 if __name__ == "__main__":
-    mixer.init()
-    # window = gui_startup()
     gui_startup()
