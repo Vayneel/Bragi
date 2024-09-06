@@ -219,9 +219,10 @@ def gui_startup():
               hover_color=color_deep_red, width=60, corner_radius=10, font=font,
               text_color=color_dark_charcoal).pack(side="left", padx=10)
 
-    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=position_update,
+    position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100,
                                 fg_color=color_dark_charcoal, progress_color=color_golden_yellow,
                                 button_color=color_golden_yellow, hover=False, width=250)
+    position_slider.bind("<ButtonRelease-1>", position_update)
     position_slider.pack()
 
     end_check(ctk)
