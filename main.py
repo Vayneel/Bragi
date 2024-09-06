@@ -26,7 +26,7 @@ clear_button: CTkButton
 music_queue: list[str] = []
 current_song_index: int = 0
 current_song_label: CTkLabel
-current_song_length: float
+current_song_length: float = 0
 music_listbox: CTkListbox
 
 
@@ -149,9 +149,7 @@ def play(mode: str = "default"):
 def gui_startup():
     global volume_slider, position_slider, play_button, music_listbox, current_song_label, add_songs_button, clear_button
 
-    bragi_image_path = resource_path("bragi.png")
-    bragi_image = CTkImage(light_image=Image.open(bragi_image_path),
-                           dark_image=Image.open(bragi_image_path),
+    bragi_image = CTkImage(Image.open(resource_path("bragi.png")),
                            size=(250, 250))
     color_soft_beige = "#E6D4B4"
     color_dark_charcoal = "#2D2A26"
@@ -182,19 +180,12 @@ def gui_startup():
                                border_width=0, scrollbar_button_color=color_soft_beige,
                                scrollbar_button_hover_color=color_golden_yellow)
     music_listbox.configure(font=font)
-    music_listbox.pack(pady=10, padx=10, expand="y", fill="both")
-
-    volume_slider = CTkSlider(master=sidebar, orientation="horizontal", from_=0, to=100, command=volume_update,
-                              fg_color=color_soft_beige, progress_color=color_golden_yellow,
-                              button_color=color_golden_yellow, hover=False)
-    volume_slider.set(100)
-
-    volume_slider.pack(side="bottom", pady=30, padx=10, fill="x")
+    music_listbox.pack(pady=0, padx=10, expand="y", fill="both")
 
     clear_button = CTkButton(master=sidebar, text="Clear", command=clear_playlist, fg_color=color_golden_yellow,
               hover_color=color_deep_red, width=220, corner_radius=10, font=font,
               text_color=color_dark_charcoal, text_color_disabled=color_soft_beige)
-    clear_button.pack(side="bottom", padx=10, pady=0)
+    clear_button.pack(side="bottom", padx=10, pady=10)
 
     current_song_label = CTkLabel(master=ctk, text_color=color_dark_charcoal,
                                   font=("Comic Sans MS Bold", 24), text="BRAGI")
@@ -204,26 +195,32 @@ def gui_startup():
     current_song_image_image.pack(pady=0)
 
     command_frame = CTkFrame(master=ctk, fg_color=color_soft_beige)
-    command_frame.pack(fill="x", padx=110, pady=20)
+    command_frame.pack(fill="x", padx=120, pady=20)
 
     CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=color_golden_yellow,
-              hover_color=color_deep_red, width=60, corner_radius=10, font=font,
-              text_color=color_dark_charcoal).pack(side="left", padx=10)
+              hover_color=color_deep_red, width=70, corner_radius=10, font=font,
+              text_color=color_dark_charcoal).pack(side="left", padx=5)
 
     play_button = CTkButton(master=command_frame, text="Play", command=play, fg_color=color_golden_yellow,
-                            hover_color=color_deep_red, width=60, corner_radius=10, font=font,
+                            hover_color=color_deep_red, width=70, corner_radius=10, font=font,
                             text_color=color_dark_charcoal)
-    play_button.pack(side="left", padx=10)
+    play_button.pack(side="left", padx=5)
 
     CTkButton(master=command_frame, text=">", command=lambda: play("next"), fg_color=color_golden_yellow,
-              hover_color=color_deep_red, width=60, corner_radius=10, font=font,
-              text_color=color_dark_charcoal).pack(side="left", padx=10)
+              hover_color=color_deep_red, width=70, corner_radius=10, font=font,
+              text_color=color_dark_charcoal).pack(side="left", padx=5)
 
     position_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100,
                                 fg_color=color_dark_charcoal, progress_color=color_golden_yellow,
-                                button_color=color_golden_yellow, hover=False, width=250)
+                                button_color=color_golden_yellow, hover=False, width=230, border_width=0)
     position_slider.bind("<ButtonRelease-1>", position_update)
-    position_slider.pack()
+    position_slider.pack(pady=0)
+
+    volume_slider = CTkSlider(master=ctk, orientation="horizontal", from_=0, to=100, command=volume_update,
+                              fg_color=color_dark_charcoal, progress_color=color_golden_yellow, width=230,
+                              button_color=color_golden_yellow, hover=False, border_width=0)
+    volume_slider.set(50)
+    volume_slider.pack(pady=5)
 
     end_check(ctk)
     ctk.mainloop()
