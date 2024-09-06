@@ -21,6 +21,7 @@ volume_slider: CTkSlider
 volume: float = 0
 position_slider: CTkSlider
 shuffle_slider: CTkSlider
+shuffle_value: bool = False
 paused: bool = False
 play_button: CTkButton
 add_songs_button: CTkButton
@@ -62,9 +63,9 @@ def position_update(_):
 
 
 def shuffle_update(_):
-    global music_listbox, music_queue, shuffle_slider
-    shuffle_value = round(shuffle_slider.get())
-    shuffle_slider.set(shuffle_value)
+    global music_listbox, music_queue, shuffle_slider, shuffle_value
+    shuffle_value = False if shuffle_value else True
+    shuffle_slider.set(int(shuffle_value))
     if shuffle_value:
         if music_listbox.size() > 2:
             shuffle(music_queue)
@@ -80,10 +81,12 @@ def clear_listbox():
         music_listbox.delete("all")
 
 def listbox_update():
-    global music_queue, music_listbox, clear_button, add_songs_button, current_song_index, current_song_label
+    global music_queue, music_listbox, clear_button, add_songs_button, current_song_index, current_song_label,\
+        shuffle_slider
 
     clear_button.configure(state="disabled")
     add_songs_button.configure(state="disabled")
+    shuffle_slider.configure(state="disabled")
 
     if len(music_queue) > 0:
         clear_listbox()
@@ -96,10 +99,11 @@ def listbox_update():
 
     clear_button.configure(state="normal")
     add_songs_button.configure(state="normal")
+    shuffle_slider.configure(state="normal")
 
 
 def load_songs():
-    global music_queue, shuffle_slider
+    global music_queue, shuffle_slider, shuffle_value
 
     music_directory = askdirectory()
     if not music_directory:
@@ -110,22 +114,25 @@ def load_songs():
             if file.endswith(".mp3") or file.endswith(".ogg") or file.endswith(".wav"):
                 music_queue.append(os.path.join(root, file))
 
-    if shuffle_slider.get():
+    if shuffle_value:
         shuffle(music_queue)
     listbox_update()
 
 
 def clear_playlist():
-    global current_song_index, music_queue, music_listbox, current_song_label, add_songs_button, clear_button
+    global current_song_index, music_queue, music_listbox, current_song_label, add_songs_button, clear_button,\
+        shuffle_slider
 
     add_songs_button.configure(state="disabled")
     clear_button.configure(state="disabled")
+    shuffle_slider.configure(state="disabled")
 
     music_queue.clear()
     clear_listbox()
 
     add_songs_button.configure(state="normal")
     clear_button.configure(state="normal")
+    shuffle_slider.configure(state="normal")
 
 
 def play(mode: str = "default"):
