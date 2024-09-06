@@ -6,6 +6,8 @@ from tkinter.filedialog import askdirectory
 from PIL import Image
 import os
 import json
+import sys
+
 
 if os.path.exists("settings.json"):
     with open("settings.json") as settings:
@@ -32,6 +34,15 @@ music_queue: list[str] = []
 current_song_index: int = 0
 current_song_label: CTkLabel
 music_listbox: CTkListbox
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        return os.path.join(sys._MEIPASS, relative_path)
+    else:
+        return os.path.join(os.path.abspath("."), relative_path)
 
 
 def end_check(ctk: CTk):
@@ -150,9 +161,10 @@ def gui_startup():
     global volume_slider, position_slider, play_button, music_listbox, volume, current_song_label, add_songs_button
     global clear_button
 
-    bragi_image = CTkImage(light_image=Image.open("bragi.png"),
-                                  dark_image=Image.open("bragi.png"),
-                                  size=(250, 250))
+    bragi_image_path = resource_path("bragi.png")
+    bragi_image = CTkImage(light_image=Image.open(bragi_image_path),
+                           dark_image=Image.open(bragi_image_path),
+                           size=(250, 250))
     color_soft_beige = "#E6D4B4"
     color_dark_charcoal = "#2D2A26"
     color_deep_red = "#A43B2A"
@@ -164,7 +176,7 @@ def gui_startup():
     ctk.geometry("720x480")
     ctk.title("BRAGI")
     ctk.resizable(False, False)
-    ctk.iconbitmap("bragi.ico")
+    ctk.iconbitmap(resource_path("bragi.ico"))
 
     sidebar = CTkFrame(master=ctk, fg_color=color_dark_charcoal, width=240, corner_radius=0)
     sidebar.pack(side="left", fill="y")

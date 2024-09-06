@@ -1,0 +1,6 @@
+Bragi.spec
+dist\**
+dist
+build\**
+build
+settings.json
