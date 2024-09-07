@@ -92,7 +92,8 @@ def listbox_update():
         clear_listbox()
 
     for song in music_queue:
-        music_listbox.insert(END, song.split("\\")[-1][:-4])
+        song = song.split("\\")[-1][:-4]
+        music_listbox.insert(END, song[:16] + ".." if len(song) > 15 else song)
 
     if music_listbox.size() > 0:
         music_listbox.select(0)
@@ -167,7 +168,7 @@ def play(mode: str = "default"):
 
     play_button.configure(text="Pause")
 
-    song_label = music_listbox.get(current_song_index)
+    song_label = music_queue[current_song_index].split("\\")[-1][:-4]
     song_label = song_label[:28] + "..." if not len(song_label) < 29 else song_label
 
     paused = False
