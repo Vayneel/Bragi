@@ -28,8 +28,8 @@ play_button: CTkButton
 add_songs_button: CTkButton
 clear_button: CTkButton
 music_queue: list[str] = []
-unused_indexes: list[int]
-used_indexes: list[int]
+unused_indexes: list[int] = []
+used_indexes: list[int] = []
 current_used_song_index: int = 0
 current_song_index: int = 0
 current_song_label: CTkLabel
@@ -155,6 +155,14 @@ def play(mode: str = "default"):
     if len(music_queue) < 1:
         return
 
+    if len(unused_indexes) == 0:
+        unused_indexes = list(range(len(music_queue)))
+        for index in used_indexes:
+            unused_indexes.remove(index)
+    if len(used_indexes) > 10:
+        used_indexes = used_indexes[-10:]
+        current_used_song_index = 9
+
     match mode:
         case "default":
             if paused:
@@ -170,31 +178,35 @@ def play(mode: str = "default"):
         case "listbox":
             current_song_index = music_listbox.curselection()
         case "next":
-            if shuffle_value and not len(used_indexes) - 1 == current_used_song_index:
-                current_song_index = used_indexes[current_used_song_index + 1]
+            if shuffle_value and not current_used_song_index == len(used_indexes) - 1:
+                current_song_index = used_indexes[used_indexes.index(current_song_index) + 1]
             else:
                 if shuffle_value:
                     current_song_index = choice(unused_indexes)
                 else:
                     current_song_index = (current_song_index + 1) % len(music_queue)
 
-                if current_song_index in unused_indexes and current_song_index not in used_indexes:
+                if current_song_index in unused_indexes:
                     unused_indexes.remove(current_song_index)
+                if current_song_index not in used_indexes:
                     used_indexes.append(current_song_index)
 
-            current_used_song_index += 1
+            if current_used_song_index < 9:
+                current_used_song_index += 1
         case "prev":
             if shuffle_value:
                 if current_song_index != used_indexes[0]:
                     current_used_song_index -= 1
                 else:
-                    current_used_song_index = len(used_indexes) - 1
+                    current_used_song_index = 9
                 current_song_index = used_indexes[current_used_song_index]
             else:
                 current_song_index = current_song_index - 1 if current_song_index > 0 else len(music_queue) - 1
-                if current_song_index in unused_indexes and current_song_index not in used_indexes:
+                if current_song_index in unused_indexes:
                     unused_indexes.remove(current_song_index)
+                if current_song_index not in used_indexes:
                     used_indexes.append(current_song_index)
+                if current_used_song_index < 9:
                     current_used_song_index += 1
 
     if not mode == "listbox":
