@@ -6,7 +6,7 @@ from tkinter.filedialog import askdirectory
 from PIL import Image
 import os
 import sys
-from random import shuffle
+from random import shuffle, choice
 
 pygame.init()
 mixer.init()
@@ -23,10 +23,12 @@ position_slider: CTkSlider
 shuffle_slider: CTkSlider
 shuffle_value: bool = False
 paused: bool = False
+prev_button: CTkButton
 play_button: CTkButton
 add_songs_button: CTkButton
 clear_button: CTkButton
 music_queue: list[str] = []
+unused_indexes: list[int]
 current_song_index: int = 0
 current_song_label: CTkLabel
 current_song_length: float = 0
@@ -63,13 +65,14 @@ def position_update(_):
 
 
 def shuffle_update(_):
-    global music_listbox, music_queue, shuffle_slider, shuffle_value
-    shuffle_value = False if shuffle_value else True
+    global shuffle_slider, shuffle_value, prev_button#, music_listbox, music_queue, used_indexes, current_song_index
+    shuffle_value = not shuffle_value
     shuffle_slider.set(int(shuffle_value))
-    if shuffle_value:
-        if music_listbox.size() > 2:
-            shuffle(music_queue)
-            listbox_update()
+    prev_button.configure(state="disabled" if shuffle_value else "normal")
+    # if shuffle_value:
+        # if music_listbox.size() > 2:
+        #     shuffle(music_queue)
+        #     listbox_update()
 
 
 def clear_listbox():
@@ -82,7 +85,7 @@ def clear_listbox():
 
 def listbox_update():
     global music_queue, music_listbox, clear_button, add_songs_button, current_song_index, current_song_label,\
-        shuffle_slider
+        shuffle_slider, unused_indexes
 
     clear_button.configure(state="disabled")
     add_songs_button.configure(state="disabled")
@@ -97,6 +100,7 @@ def listbox_update():
 
     if music_listbox.size() > 0:
         music_listbox.select(0)
+        unused_indexes = list(range(1, len(music_queue)))
 
     clear_button.configure(state="normal")
     add_songs_button.configure(state="normal")
@@ -122,13 +126,14 @@ def load_songs():
 
 def clear_playlist():
     global current_song_index, music_queue, music_listbox, current_song_label, add_songs_button, clear_button,\
-        shuffle_slider
+        shuffle_slider, unused_indexes
 
     add_songs_button.configure(state="disabled")
     clear_button.configure(state="disabled")
     shuffle_slider.configure(state="disabled")
 
     music_queue.clear()
+    unused_indexes.clear()
     clear_listbox()
 
     add_songs_button.configure(state="normal")
@@ -137,7 +142,8 @@ def clear_playlist():
 
 
 def play(mode: str = "default"):
-    global paused, music_queue, current_song_index, play_button, music_listbox, current_song_label, current_song_length
+    global paused, music_queue, current_song_index, play_button, music_listbox, current_song_label,\
+        current_song_length, unused_indexes
 
     if mode != "default":
         mixer.music.unload()
@@ -159,7 +165,11 @@ def play(mode: str = "default"):
         case "listbox":
             current_song_index = music_listbox.curselection()
         case "next":
-            current_song_index = (current_song_index + 1) % len(music_queue)
+            if shuffle_value:
+                current_song_index = choice(unused_indexes)
+                unused_indexes.remove(current_song_index)
+            else:
+                current_song_index = (current_song_index + 1) % len(music_queue)
         case "prev":
             current_song_index = current_song_index - 1 if current_song_index > 0 else len(music_queue) - 1
 
@@ -181,7 +191,7 @@ def play(mode: str = "default"):
 
 def gui_startup():
     global volume_slider, position_slider, play_button, music_listbox, current_song_label, add_songs_button, \
-        clear_button, shuffle_slider
+        clear_button, shuffle_slider, prev_button
 
     bragi_image = CTkImage(Image.open(resource_path("bragi.png")),
                            size=(250, 250))
@@ -231,9 +241,10 @@ def gui_startup():
     command_frame = CTkFrame(master=ctk, fg_color=color_soft_beige)
     command_frame.pack(fill="x", padx=120, pady=10)
 
-    CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=color_golden_yellow,
-              hover_color=color_deep_red, width=70, corner_radius=10, font=font,
-              text_color=color_dark_charcoal).pack(side="left", padx=5)
+    prev_button = CTkButton(master=command_frame, text="<", command=lambda: play("prev"), fg_color=color_golden_yellow,
+              hover_color=color_deep_red, width=70, corner_radius=10, font=font, text_color_disabled=color_soft_beige,
+              text_color=color_dark_charcoal)
+    prev_button.pack(side="left", padx=5)
 
     play_button = CTkButton(master=command_frame, text="Play", command=play, fg_color=color_golden_yellow,
                             hover_color=color_deep_red, width=70, corner_radius=10, font=font,
